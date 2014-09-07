@@ -15,8 +15,8 @@ At the lowest level the API would be a trait (Awaitable, described later) whose 
     
         fn promise(&self, event: EventType) -> Promise,
 
-				fn emit(&self, event: EventType, data: &T)
-... 
+        fn emit(&self, event: EventType, data: &T)
+    ... 
 
 Presumably, IO based Awaitables, such as socket and pipe would emit events on readiness, but they are welcome to do whichever. 
 
@@ -63,3 +63,41 @@ This can all be accomplished without a central lookup table by passing the point
 
 The Awaitable object itself would have to maintain an event -> callback-list mapping.  A default implementation will be supplied that can be composed in to the awaitable. 
 
+I am assuming that consumers of the Awaitable object simply won't care about the reactor, and therefore the default construction of an IO Awaitable will be a singleton IO Reactor that is spun up on first access.  There will be the option of an alternate construction mechanism which will take a new Reactor and set it running in its own thread. 
+
+It is the responsibility of the Reactor to ensure that controls into the reactor (registration, run/stop, etc) are managed in a thread-safe way. 
+
+### Async/Await 
+
+The ability to invert callback control-flow into something that appears to be blocking calls is desireable. With green-threads not living up to their promise, a lightweight mechanism is needed. 
+
+It is the intent of this module to provide macros named async and await, which will construct a state machine to manage events, and provide markers into event states, respectively. 
+
+It is hoped that the code will appear as follows: 
+
+    asyncfn!(test_tcp (hostport: string) -> Promise<string> {
+        //TcpClient.connect normally returns a promise
+        // but this await! call will make it appear as
+        // though it is a blocking call and returning the value
+        let client = await!(TcpClient.connect());
+        len num = await!(client.send("Ping!");
+        let mut buf = [u8, ..5];
+        let result = await!(client.receive(&buf);
+        if result == "Pong!" {
+            println!("Success!");
+        }
+    })
+
+Immediate code and async code can be executed side by side in an async! function, but the asynchronous calls that must be blocked have to be wrapped in await!. 
+
+Something like  
+
+    let result = await!(getNumberAsync("A")) + await!(getNumberAsync("B")); 
+
+should be no problem. 
+
+await! is demonstrated above taking a single promise, but I would also like to introduce functions  
+
+awaitAll! and awaitAny! which would take an array of promises and in the first case, block until all promises have been fulfilled, in the Any case, it would block until one was fulfilled.  
+
+The possibilities here extend quite far, the system could leverage a Promise management library similar to bluebird which can do a great number of things against Promises, such as cascade, or map/fold against an accumulator. 
