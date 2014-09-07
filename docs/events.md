@@ -25,3 +25,12 @@ So with that in mind, lets set out to design an event system which is:
 2. Is a closed set (at the end of compile time) 
 
 
+The best answer I can come up with is based on
+[bitflags](http://doc.rust-lang.org/src/std/home/rustbuild/src/rust-buildbot/slave/nightly-linux/build/src/libstd/bitflags.rs.html) 
+
+The difference being that, if we want multiple people to participate in producing events for later use, they must be
+able to contribute types of their own. The easiest option will be to provide a hash value for all event names. 
+The hash value will be calculated by  hash(struct-name + event-name) so that incidental conflicts can be avoided. 
+
+
+These hash values can be loaded directly into a Hash table managed by the Awaitable object.
