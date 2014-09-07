@@ -1,0 +1,5 @@
+[package]
+
+name = "awaitable"
+version = "0.0.1"
+authors = ["Rick Richardson <rick.richardson@gmail.com>"]
